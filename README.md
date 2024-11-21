@@ -1,38 +1,38 @@
 # Covid-19 Data Exploration
 
-This project demonstrates how SQL can be utilized to analyze large datasets to uncover meaningful insights about the global Covid-19 pandemic. By analyzing Covid-19 cases, deaths, and vaccination data, this project offers valuable insights into infection rates, vaccination trends, and mortality patterns across the globe.
+This project leverages SQL to analyze and uncover insights from the global Covid-19 pandemic data. By exploring cases, deaths, and vaccination statistics, this project highlights trends and patterns to understand the pandemic's impact across regions and populations.
 
 ---
 
 ## 📌 Project Overview
-This project focuses on exploring and analyzing Covid-19 data to:
-- Understand the spread and impact of Covid-19 globally.
-- Derive meaningful insights using SQL queries.
-- Prepare data for visualization in tools like Tableau or Power BI.
+This project aims to:
+- Analyze Covid-19 data to understand infection, death, and vaccination trends.
+- Use advanced SQL techniques to prepare data for visualization and further exploration.
+- Deliver meaningful insights for better understanding and decision-making.
 
 ---
 
 ## 🛠️ Skills Demonstrated
-- **SQL Joins**: Combining data from multiple tables for richer analysis.
-- **Common Table Expressions (CTEs)**: Simplifying complex queries for better readability and reusability.
-- **Window Functions**: Performing calculations across partitions of data.
-- **Temporary Tables**: Creating intermediate results for dynamic analysis.
-- **Aggregate Functions**: Summarizing data to derive trends and insights.
-- **Data Type Conversion**: Ensuring compatibility and accuracy of calculations.
-- **Views**: Creating reusable datasets for visualization and advanced reporting.
+- **SQL Joins**: Combining datasets for enhanced analysis.
+- **Common Table Expressions (CTEs)**: Simplifying complex queries for reusability.
+- **Window Functions**: Performing rolling calculations and partitioned operations.
+- **Temporary Tables**: Storing intermediate results for additional analysis.
+- **Aggregate Functions**: Deriving summary statistics like totals and averages.
+- **Views**: Creating reusable datasets for visualization and analysis.
+- **Data Type Conversions**: Ensuring compatibility and accuracy of calculations.
 
 ---
 
 ## 📂 Datasets
-1. **CovidDeaths.xlsx**: Contains data on Covid-19 cases, deaths, and population for various locations worldwide.
-2. **CovidVaccinations.xlsx**: Tracks vaccination progress for each location.
+- **CovidDeaths**: Contains data on Covid-19 cases, deaths, and population across locations.
+- **CovidVaccinations**: Tracks vaccination progress across regions.
 
 ---
 
 ## 🔍 Analysis and Key Queries
+
 ### 1. **Initial Data Exploration**
-   - **Purpose**: Examine the raw data to identify useful columns.
-   - **Key Metrics**: `total_cases`, `total_deaths`, `population`.
+   - **Purpose**: Examine raw data and key columns for analysis.
    - **Query**:
      ```sql
      SELECT *
@@ -42,7 +42,7 @@ This project focuses on exploring and analyzing Covid-19 data to:
      ```
 
 ### 2. **Mortality Rate Analysis**
-   - **Purpose**: Calculate the likelihood of dying from Covid-19 in different countries.
+   - **Purpose**: Calculate the likelihood of dying from Covid-19.
    - **Query**:
      ```sql
      SELECT Location, date, total_cases, total_deaths, 
@@ -51,56 +51,123 @@ This project focuses on exploring and analyzing Covid-19 data to:
      WHERE continent IS NOT NULL
      ORDER BY 1, 2;
      ```
-   - **Output**:
-     - Identifies regions with high mortality rates.
-     - Helps in understanding the severity of the pandemic in different locations.
+   - **Output**: Highlights mortality rates across countries.
 
 ### 3. **Infection Rates**
-   - **Purpose**: Measure the percentage of the population infected by Covid-19.
+   - **Purpose**: Measure the percentage of populations infected by Covid-19.
    - **Query**:
      ```sql
-     SELECT Location, date, population, total_cases, 
+     SELECT Location, date, Population, total_cases, 
             (total_cases / population) * 100 AS PercentPopulationInfected
      FROM PortfolioProject..CovidDeaths
      WHERE continent IS NOT NULL
      ORDER BY 1, 2;
      ```
-   - **Output**:
-     - Highlights how widespread infections were relative to population size.
-     - Useful for identifying the most affected regions.
+   - **Output**: Identifies regions with high infection rates.
 
-### 4. **Vaccination Trends**
-   - **Purpose**: Track vaccination progress over time.
+### 4. **Countries with Highest Infection Rates**
+   - **Purpose**: Identify countries most affected by Covid-19 relative to their population.
+   - **Query**:
+     ```sql
+     SELECT Location, Population, 
+            MAX(total_cases) AS HighestInfectionCount,  
+            MAX((total_cases / population)) * 100 AS PercentPopulationInfected
+     FROM PortfolioProject..CovidDeaths
+     GROUP BY Location, Population
+     ORDER BY PercentPopulationInfected DESC;
+     ```
+
+### 5. **Countries with Highest Death Count**
+   - **Purpose**: Identify countries with the highest death count per population.
+   - **Query**:
+     ```sql
+     SELECT Location, MAX(CAST(Total_deaths AS INT)) AS TotalDeathCount
+     FROM PortfolioProject..CovidDeaths
+     WHERE continent IS NOT NULL
+     GROUP BY Location
+     ORDER BY TotalDeathCount DESC;
+     ```
+
+### 6. **Continent-Level Insights**
+   - **Purpose**: Compare death counts and infection rates by continent.
+   - **Query**:
+     ```sql
+     SELECT continent, MAX(CAST(Total_deaths AS INT)) AS TotalDeathCount
+     FROM PortfolioProject..CovidDeaths
+     WHERE continent IS NOT NULL
+     GROUP BY continent
+     ORDER BY TotalDeathCount DESC;
+     ```
+
+### 7. **Global Summary**
+   - **Purpose**: Analyze worldwide Covid-19 statistics, including cases, deaths, and death percentages.
+   - **Query**:
+     ```sql
+     SELECT SUM(new_cases) AS total_cases, 
+            SUM(CAST(new_deaths AS INT)) AS total_deaths, 
+            SUM(CAST(new_deaths AS INT)) / SUM(new_cases) * 100 AS DeathPercentage
+     FROM PortfolioProject..CovidDeaths
+     WHERE continent IS NOT NULL;
+     ```
+
+### 8. **Vaccination Trends**
+   - **Purpose**: Track vaccination progress globally.
    - **Query**:
      ```sql
      SELECT dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations,
-            SUM(CONVERT(int, vac.new_vaccinations)) 
-            OVER (PARTITION BY dea.Location ORDER BY dea.date) AS RollingPeopleVaccinated
+            SUM(CONVERT(INT, vac.new_vaccinations)) 
+            OVER (PARTITION BY dea.Location ORDER BY dea.Date) AS RollingPeopleVaccinated
      FROM PortfolioProject..CovidDeaths dea
      JOIN PortfolioProject..CovidVaccinations vac
           ON dea.location = vac.location AND dea.date = vac.date
      WHERE dea.continent IS NOT NULL
      ORDER BY 2, 3;
      ```
-   - **Output**:
-     - Displays cumulative vaccinations for each location.
-     - Useful for comparing vaccination rollouts across countries.
 
-### 5. **Continent-Level Insights**
-   - **Purpose**: Compare death rates and infection trends by continent.
+### 9. **CTE for Vaccination Analysis**
+   - **Purpose**: Simplify vaccination trends with reusable CTEs.
    - **Query**:
      ```sql
-     SELECT continent, MAX(total_deaths) AS TotalDeathCount
-     FROM PortfolioProject..CovidDeaths
-     WHERE continent IS NOT NULL
-     GROUP BY continent
-     ORDER BY TotalDeathCount DESC;
+     WITH PopvsVac (Continent, Location, Date, Population, New_Vaccinations, RollingPeopleVaccinated) AS (
+         SELECT dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations,
+                SUM(CONVERT(INT, vac.new_vaccinations)) 
+                OVER (PARTITION BY dea.Location ORDER BY dea.Date) AS RollingPeopleVaccinated
+         FROM PortfolioProject..CovidDeaths dea
+         JOIN PortfolioProject..CovidVaccinations vac
+              ON dea.location = vac.location AND dea.date = vac.date
+         WHERE dea.continent IS NOT NULL
+     )
+     SELECT *, (RollingPeopleVaccinated / Population) * 100 AS PercentVaccinated
+     FROM PopvsVac;
      ```
-   - **Output**:
-     - Highlights the continents with the most severe outcomes.
-     - Helps policymakers prioritize regions for support.
 
-### 6. **Monthly Trends**
+### 10. **Temporary Table for Vaccination Analysis**
+   - **Purpose**: Store vaccination calculations in a temporary table.
+   - **Query**:
+     ```sql
+     DROP TABLE IF EXISTS #PercentPopulationVaccinated;
+     CREATE TABLE #PercentPopulationVaccinated (
+         Continent NVARCHAR(255),
+         Location NVARCHAR(255),
+         Date DATETIME,
+         Population NUMERIC,
+         New_vaccinations NUMERIC,
+         RollingPeopleVaccinated NUMERIC
+     );
+
+     INSERT INTO #PercentPopulationVaccinated
+     SELECT dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations,
+            SUM(CONVERT(INT, vac.new_vaccinations)) 
+            OVER (PARTITION BY dea.Location ORDER BY dea.Date) AS RollingPeopleVaccinated
+     FROM PortfolioProject..CovidDeaths dea
+     JOIN PortfolioProject..CovidVaccinations vac
+          ON dea.location = vac.location AND dea.date = vac.date;
+
+     SELECT *, (RollingPeopleVaccinated / Population) * 100 AS PercentVaccinated
+     FROM #PercentPopulationVaccinated;
+     ```
+
+### 11. **Monthly Trends**
    - **Purpose**: Analyze trends in new cases on a monthly basis.
    - **Query**:
      ```sql
@@ -117,39 +184,17 @@ This project focuses on exploring and analyzing Covid-19 data to:
 
 ---
 
-## 🚀 Project Features
-1. **Global Summary**:
-   - Analyze the global spread of Covid-19, total cases, and deaths.
-2. **Mortality and Infection Trends**:
-   - Identify the most and least affected countries.
-3. **Vaccination Analysis**:
-   - Track vaccination rollouts and highlight countries with the highest vaccination rates.
-4. **Regional Insights**:
-   - Compare continents based on death and infection rates.
-
----
-
-## 📖 How to Run the Project
-1. **Set Up the Environment**:
-   - Load `CovidDeaths.xlsx` and `CovidVaccinations.xlsx` into a SQL database.
-2. **Run Queries**:
-   - Execute the SQL queries in a sequential order to replicate the analysis.
-3. **Visualize**:
-   - Use Tableau or Power BI to create visualizations from the output views.
-
----
-
-## 🔮 Future Enhancements
-- Integrate machine learning to predict future trends in cases and vaccinations.
-- Build a real-time dashboard for live data updates.
-- Analyze socio-economic factors influencing Covid-19 outcomes.
+## 📖 How to Run
+1. Load `CovidDeaths` and `CovidVaccinations` datasets into your SQL environment.
+2. Execute the queries in order for a comprehensive analysis.
+3. Use the final views and tables for visualization in Tableau or Power BI.
 
 ---
 
 ## 🤝 Connect
-Feel free to reach out for questions or suggestions:
 - **Email**: [syedmutaib0599@gmail.com](mailto:syedmutaib0599@gmail.com)
 - **LinkedIn**: [Syed Mutaib Ali](https://linkedin.com/in/syedmutaibali)
 
 ---
 
+This README ensures consistency and clarity while presenting your project on GitHub!
